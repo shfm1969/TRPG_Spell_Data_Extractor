@@ -43,6 +43,6 @@ The pipeline must extract specific Dungeons & Dragons (or Pathfinder) spell prop
 ### Requirement: String Length Bound Constraints
 - **GIVEN** spell text parameters for duration, saving throw, and spell resistance
 - **WHEN** the text is evaluated
-- **THEN** the `[持續時間]` text must be retained if its length is <= 2 characters, otherwise return "其他".
-- **AND** the `[豁免檢定]` text must be retained if its length is <= 12 characters, otherwise return "其他".
-- **AND** the `[法術抗力]` text must be retained if its length is <= 5 characters, otherwise return "其他".
+- **THEN** the `[持續時間]` text SHALL first have 「每等級」replaced with 「每CL」, then retained if its length is <= 16 characters, otherwise return 「其他」.
+- **AND** the `[豁免說明]` text must be retained if its length is <= 16 characters, otherwise return 「其他」.
+- **AND** the `[法術抗力]` text must be retained if its length is <= 5 characters, otherwise return 「其他」.

@@ -243,6 +243,19 @@ def get_doc_text(docs_service, document_id):
         return ""
 
 import re
+import opencc
+
+# 初始化簡體→臺灣繁體轉換器（s2twp = Simplified to Traditional with Taiwan phrases）
+_converter = opencc.OpenCC('s2twp')
+
+def to_zh_tw(text: str) -> str:
+    """將文字從簡體中文轉換為繁體中文（臺灣用字），並將全形括號轉為半形。若輸入為空則原樣回傳。"""
+    if not text:
+        return text
+    converted = _converter.convert(text)
+    # 全形括號→半形括號
+    converted = converted.replace('（', '(').replace('）', ')')
+    return converted
 
 def parse_spell_data(text, spell_name):
     """Parses text to extract spell properties based on business rules."""
@@ -299,9 +312,10 @@ def parse_spell_data(text, spell_name):
             elif content.startswith("接触") or content.startswith("接觸"): parsed_data["[施法距離]"] = "接觸"
             else: parsed_data["[施法距離]"] = "其他"
             
-        # Parse Duration: [持續時間] (Limit <= 16 chars)
+        # Parse Duration: [持續時間] (先替換「每等級」→「每CL」，再判斷長度 <= 16)
         if line.startswith("持续时间") or line.startswith("持續時間"):
             content = line.split(":", 1)[-1].split("：", 1)[-1].strip()
+            content = content.replace("每等级", "每CL").replace("每等級", "每CL")
             parsed_data["[持續時間]"] = content if len(content) <= 16 else "其他"
             
         # Parse Saving Throw: [豁免] & [豁免說明] (Limit <= 12 chars)
@@ -407,6 +421,8 @@ def main():
             for col_name, new_val in parsed_data.items():
                 col_idx = get_col_idx(col_map, col_name)
                 if col_idx is not None:
+                    # 寫入前先將欄位值轉換為繁體中文
+                    new_val = to_zh_tw(str(new_val))
                     # Convert col index to A1 notation column letter
                     col_letter = col_idx_to_letter(col_idx)
                     cell_range = f"'{actual_sheet_name}'!{col_letter}{item['row_num']}"
