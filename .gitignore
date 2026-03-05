@@ -13,3 +13,6 @@ wheels/
 .env
 credentials.json
 token.json
+
+# Debug outputs
+debug_output*.txt
