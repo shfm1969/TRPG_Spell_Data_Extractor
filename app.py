@@ -270,10 +270,17 @@ def parse_spell_data(text, spell_name):
         
     lines = text.split('\n')
     start_idx = 0
+    
+    # First pass: prefer heading-style lines where the spell name appears as a title
+    # e.g., "反魔場（Antimagic Field）" rather than a casual mention in description
+    heading_like = re.compile(r'^[^:：]{0,20}[(（].*[)）]\s*$')
     for i, line in enumerate(lines):
-        if target_name and target_name in line.lower():
+        if target_name and target_name in line.lower() and heading_like.match(line.strip()):
             start_idx = i
             break
+    else:
+        # No heading-style match found — give up
+        return parsed_data
             
     end_idx = len(lines)
     heading_pattern = re.compile(r'^[^:：\(（]+[(（][a-zA-Z\s\-\']+[)）]\s*$')
