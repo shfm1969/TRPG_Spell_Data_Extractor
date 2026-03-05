@@ -73,7 +73,7 @@ def find_file_id(drive_service, file_name, parent_id=None):
 def get_target_sheet_id(drive_service):
     """Navigates the folder structure to find the target spreadsheet."""
     root_folder_name = os.getenv("GOOGLE_DRIVE_ROOT_FOLDER", "我的雲端硬碟")
-    target_path = os.getenv("TARGET_FOLDER_NAME", "5團資料_大叔/卡爾_牧師_20260227")
+    target_path = os.getenv("TARGET_FOLDER_NAME", "5團資料_大叔")
     sheet_name = os.getenv("TARGET_SHEET_NAME", "法術詳述列表_大叔")
     
     print(f"Searching for folder path: {root_folder_name}/{target_path}")

@@ -35,7 +35,7 @@
    - 複製 `.env.example` 並重新命名為 `.env`。
    - 若有需要，可以修改 `.env` 中的目標資料夾或試算表名稱。
      ```env
-     TARGET_FOLDER_PATH="我的雲端硬碟/5團資料_大叔/卡爾_牧師_20260227"
+     TARGET_FOLDER_PATH="我的雲端硬碟/5團資料_大叔"
      TARGET_SHEET_NAME="法術詳述列表_大叔"
      ```
 
