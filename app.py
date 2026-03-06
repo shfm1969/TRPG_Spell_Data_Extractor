@@ -271,7 +271,13 @@ def parse_spell_data(text, spell_name, verbose=False):
         "[姿勢S]": "",
         "[材料M]": "",
         "[器材F]": "",
-        "[法器DF]": ""
+        "[法器DF]": "",
+        "[施法時間]": "",
+        "[施法距離]": "",
+        "[持續時間]": "",
+        "[豁免]": "",
+        "[豁免說明]": "",
+        "[法抗]": ""
     }
 
     # Extract English name to find target block (bypassing Traditional/Simplified issues)
