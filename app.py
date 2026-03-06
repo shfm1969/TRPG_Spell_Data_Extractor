@@ -181,10 +181,10 @@ def get_col_idx(col_map, name):
     if idx is not None: return idx
     return col_map.get(name.strip('[]'))
 
-def filter_rows_for_processing(rows, col_map, start_row):
+def filter_rows_for_processing(rows, col_map, start_row, verbose=False):
     """Filters rows that have missing data and a valid Google Docs URL."""
     rows_to_process = []
-    
+
     url_col_idx = get_col_idx(col_map, "[法術詳述 連結]")
     if url_col_idx is None:
         print("Error: Could not find '[法術詳述 連結]' or '法術詳述 連結' column in headers.")
@@ -193,27 +193,29 @@ def filter_rows_for_processing(rows, col_map, start_row):
 
     for i, row in enumerate(rows):
         actual_row_num = start_row + i
-        
+
         # Check if the URL column exists in this row's data
         if len(row) <= url_col_idx or not row[url_col_idx]:
-             continue
-             
+            if verbose: print(f"Row {actual_row_num}: skipped (no URL)")
+            continue
+
         url = row[url_col_idx]
         if "docs.google.com/document/d/" not in url:
+            if verbose: print(f"Row {actual_row_num}: skipped (invalid URL: {url!r})")
             continue
-            
+
         # Check if any target column is missing data
         is_missing_data = False
         for col_name in TARGET_COLUMNS:
             col_idx = get_col_idx(col_map, col_name)
             if col_idx is None:
                 continue # If the column doesn't exist in header, we can't update it
-                
+
             # If the row is shorter than the column index, or the cell is empty string
             if len(row) <= col_idx or not str(row[col_idx]).strip():
                 is_missing_data = True
                 break
-                
+
         if is_missing_data:
             # Extract doc ID from URL
             parts = url.split("/d/")
@@ -224,7 +226,10 @@ def filter_rows_for_processing(rows, col_map, start_row):
                     'row_data': row,
                     'doc_id': doc_id
                 })
-                
+                if verbose: print(f"Row {actual_row_num}: queued for processing (doc_id: {doc_id})")
+        else:
+            if verbose: print(f"Row {actual_row_num}: skipped (all target fields already filled)")
+
     return rows_to_process
 
 def get_doc_text(docs_service, document_id):
@@ -247,6 +252,8 @@ import opencc
 
 # 初始化簡體→臺灣繁體轉換器（s2twp = Simplified to Traditional with Taiwan phrases）
 _converter = opencc.OpenCC('s2twp')
+# 初始化繁體→簡體轉換器，用於標題搜尋時對齊 Google Doc 的簡體標題
+_t2s_converter = opencc.OpenCC('t2s')
 
 def to_zh_tw(text: str) -> str:
     """將文字從簡體中文轉換為繁體中文（臺灣用字），並將全形括號轉為半形。若輸入為空則原樣回傳。"""
@@ -257,29 +264,36 @@ def to_zh_tw(text: str) -> str:
     converted = converted.replace('（', '(').replace('）', ')')
     return converted
 
-def parse_spell_data(text, spell_name):
+def parse_spell_data(text, spell_name, verbose=False):
     """Parses text to extract spell properties based on business rules."""
     parsed_data = {}
-    
+
     # Extract English name to find target block (bypassing Traditional/Simplified issues)
     english_name_match = re.search(r'[(（]([a-zA-Z\s\-\']+)[)）]', str(spell_name))
     if english_name_match:
         target_name = english_name_match.group(1).lower().strip()
     else:
         target_name = str(spell_name).lower().strip()
-        
+
+    # 同時準備簡體版 target_name，以對齊 Google Doc 中可能使用簡體的標題
+    target_name_simp = _t2s_converter.convert(target_name).lower()
+    if verbose: print(f"  [parse] spell_name={spell_name!r}  target_name={target_name!r}  target_name_simp={target_name_simp!r}")
+
     lines = text.split('\n')
     start_idx = 0
-    
+
     # First pass: prefer heading-style lines where the spell name appears as a title
     # e.g., "反魔場（Antimagic Field）" rather than a casual mention in description
     heading_like = re.compile(r'^[^:：]{0,20}[(（].*[)）]\s*$')
     for i, line in enumerate(lines):
-        if target_name and target_name in line.lower() and heading_like.match(line.strip()):
+        line_lower = line.lower()
+        if target_name and (target_name in line_lower or target_name_simp in line_lower) and heading_like.match(line.strip()):
+            if verbose: print(f"  [parse] heading matched at line {i}: {line.strip()!r}")
             start_idx = i
             break
     else:
         # No heading-style match found — give up
+        if verbose: print(f"  [parse] no heading match → skipping")
         return parsed_data
             
     end_idx = len(lines)
@@ -297,11 +311,11 @@ def parse_spell_data(text, spell_name):
         
         # Parse Components: [語言V] / [姿勢S] / [材料M] / [器材F] / [法器DF]
         if line.startswith("成分") or line.startswith("法术成分") or line.startswith("法術成分"):
-            if "語言" in line or "语言" in line or "言语" in line or "言語" in line: parsed_data["[語言V]"] = "語"
-            if "姿勢" in line or "姿势" in line: parsed_data["[姿勢S]"] = "姿"
-            if "材料" in line: parsed_data["[材料M]"] = "材"
-            if "器材" in line: parsed_data["[器材F]"] = "器"
-            if "法器" in line: parsed_data["[法器DF]"] = "法"
+            if "語言" in line or "语言" in line or "言语" in line or "言語" in line or re.search(r'\bV\b', line): parsed_data["[語言V]"] = "語"
+            if "姿勢" in line or "姿势" in line or re.search(r'\bS\b', line): parsed_data["[姿勢S]"] = "姿"
+            if "材料" in line or re.search(r'\bM\b', line): parsed_data["[材料M]"] = "材"
+            if "法器" in line or re.search(r'\bDF\b', line): parsed_data["[法器DF]"] = "法"
+            if "器材" in line or re.search(r'(?<![A-Z])F(?![A-Z])', line): parsed_data["[器材F]"] = "器"
             
         # Parse Casting Time: [施法時間]
         if line.startswith("施法时间") or line.startswith("施法時間"):
@@ -345,7 +359,8 @@ def parse_spell_data(text, spell_name):
         if line.startswith("法术抗力") or line.startswith("法術抗力"):
             content = line.split(":", 1)[-1].split("：", 1)[-1].strip()
             if content.startswith("不可"): parsed_data["[法抗]"] = "不可"
-            elif content.startswith("可"): parsed_data["[法抗]"] = "可"
+            elif content.startswith("否") or content.startswith("无") or content.startswith("無"): parsed_data["[法抗]"] = "不可"
+            elif content.startswith("可") or content.startswith("有"): parsed_data["[法抗]"] = "可"
             else: parsed_data["[法抗]"] = "其他"
 
     return parsed_data
@@ -354,6 +369,7 @@ def main():
     parser = argparse.ArgumentParser(description="Extract TRPG spells and update Google Sheet.")
     parser.add_argument("--start-row", type=int, required=True, help="The starting row number in the Google Sheet.")
     parser.add_argument("--batch-size", type=int, default=1, help="Number of rows to process (max 100). Default is 1.")
+    parser.add_argument("--verbose", action="store_true", help="Print diagnostic output for each row.")
     args = parser.parse_args()
     
     if args.batch_size > 100:
@@ -397,7 +413,7 @@ def main():
         print(f"Fetched {len(rows)} rows from the spreadsheet (Tab: {actual_sheet_name}).")
         
         # Filter missing data and valid URLs
-        rows_to_process = filter_rows_for_processing(rows, col_map, start_row)
+        rows_to_process = filter_rows_for_processing(rows, col_map, start_row, verbose=args.verbose)
         print(f"Found {len(rows_to_process)} rows that need processing.")
         
         # 4. Document Parsing & 5. Data Formatting
@@ -422,7 +438,8 @@ def main():
             # If we have an english spell name, use that for robust searching, otherwise fallback
             search_name = english_spell_name if english_spell_name else chinese_spell_name
             
-            parsed_data = parse_spell_data(text, search_name)
+            parsed_data = parse_spell_data(text, search_name, verbose=args.verbose)
+            if args.verbose: print(f"  [parse] extracted fields: {parsed_data}")
 
             # Format update for this specific row based on col_map
             for col_name, new_val in parsed_data.items():
