@@ -379,12 +379,12 @@ def parse_spell_data(text, spell_name, verbose=False):
 def main():
     parser = argparse.ArgumentParser(description="Extract TRPG spells and update Google Sheet.")
     parser.add_argument("--start-row", type=int, required=True, help="The starting row number in the Google Sheet.")
-    parser.add_argument("--batch-size", type=int, default=1, help="Number of rows to process (max 100). Default is 1.")
+    parser.add_argument("--batch-size", type=int, default=1, help="Number of rows to process (max 50). Default is 1.")
     parser.add_argument("--verbose", action="store_true", help="Print diagnostic output for each row.")
     args = parser.parse_args()
     
-    if args.batch_size > 100:
-        print("Error: batch-size cannot exceed 100.")
+    if args.batch_size > 50:
+        print("Error: batch-size cannot exceed 50.")
         return
         
     start_row = args.start_row
@@ -466,10 +466,25 @@ def main():
                         'range': cell_range,
                         'values': [[new_val]]
                     })
+            
+            # 每隔 10 筆時，將這批已累積的更新寫入 Google Sheet，並在畫面上顯示
+            if (index + 1) % 10 == 0:
+                if updates:
+                    print(f"  -> [Batch Update] 處理滿 10 筆，正在將累積的 {len(updates)} 個儲存格變更寫入 Google Sheet...")
+                    body = {
+                        'valueInputOption': 'USER_ENTERED',
+                        'data': updates
+                    }
+                    response = sheets_service.spreadsheets().values().batchUpdate(
+                        spreadsheetId=sheet_id, body=body).execute()
+                    print(f"  -> [Batch Update] 成功更新了 {response.get('totalUpdatedCells')} 個儲存格。")
+                    updates = [] # 清空更新佇列，準備下一批
+                else:
+                    print(f"  -> [Batch Update] 處理滿 10 筆，此批沒有內容需要更新。")
 
-        # 5. Data Write-Back
+        # 5. Data Write-Back (處理最後未滿 10 筆的剩餘資料)
         if updates:
-            print(f"Applying {len(updates)} cell updates to the spreadsheet...")
+            print(f"  -> [Final Update] 正在將最後剩餘的 {len(updates)} 個儲存格變更寫入 Google Sheet...")
             body = {
                 'valueInputOption': 'USER_ENTERED',
                 'data': updates
@@ -479,9 +494,9 @@ def main():
             response = sheets_service.spreadsheets().values().batchUpdate(
                 spreadsheetId=sheet_id, body=body).execute()
                 
-            print(f"Successfully updated {response.get('totalUpdatedCells')} cells.")
-        else:
-            print("No updates required for the processed rows.")
+            print(f"  -> [Final Update] 成功更新了 {response.get('totalUpdatedCells')} 個儲存格。")
+        elif len(rows_to_process) == 0 or (len(rows_to_process) % 10 != 0):
+            print("剩餘的處理項目中沒有需要更新的資料。")
             
         print("Execution completed.")
         
