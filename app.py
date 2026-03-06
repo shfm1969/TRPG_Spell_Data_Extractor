@@ -279,7 +279,12 @@ def parse_spell_data(text, spell_name, verbose=False):
     if english_name_match:
         target_name = english_name_match.group(1).lower().strip()
     else:
-        target_name = str(spell_name).lower().strip()
+        # 嘗試匹配沒有括號的英文部分，這通常是由空白分隔的結尾英文
+        eng_match = re.search(r'\s+([a-zA-Z\s\-\']+)$', str(spell_name))
+        if eng_match:
+            target_name = eng_match.group(1).lower().strip()
+        else:
+            target_name = str(spell_name).lower().strip()
 
     # 同時準備簡體版 target_name，以對齊 Google Doc 中可能使用簡體的標題
     target_name_simp = _t2s_converter.convert(target_name).lower()
@@ -289,8 +294,8 @@ def parse_spell_data(text, spell_name, verbose=False):
     start_idx = 0
 
     # First pass: prefer heading-style lines where the spell name appears as a title
-    # e.g., "反魔場（Antimagic Field）" rather than a casual mention in description
-    heading_like = re.compile(r'^[^:：]{0,20}[(（].*[)）]\s*$')
+    # e.g., "反魔場（Antimagic Field）" or "修改机运 Alter Fortune"
+    heading_like = re.compile(r'^[^:：]{1,40}(?:[(（].*[)）]|\s+[a-zA-Z0-9\s\-\'’,\/]+)\s*$')
     for i, line in enumerate(lines):
         line_lower = line.lower()
         if target_name and (target_name in line_lower or target_name_simp in line_lower) and heading_like.match(line.strip()):
@@ -303,7 +308,7 @@ def parse_spell_data(text, spell_name, verbose=False):
         return parsed_data
             
     end_idx = len(lines)
-    heading_pattern = re.compile(r'^[^:：\(（]+[(（][a-zA-Z0-9\s\-\'’,\/]+[)）]\s*$')
+    heading_pattern = re.compile(r'^[^:：\(（\s]+(?:[(（][a-zA-Z0-9\s\-\'’,\/]+[)）]|\s+[a-zA-Z0-9\s\-\'’,\/]+)\s*$')
     for i in range(start_idx + 1, len(lines)):
         if heading_pattern.match(lines[i].strip()):
             end_idx = i
