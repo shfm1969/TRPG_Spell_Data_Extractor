@@ -297,7 +297,7 @@ def parse_spell_data(text, spell_name, verbose=False):
         return parsed_data
             
     end_idx = len(lines)
-    heading_pattern = re.compile(r'^[^:：\(（]+[(（][a-zA-Z\s\-\']+[)）]\s*$')
+    heading_pattern = re.compile(r'^[^:：\(（]+[(（][a-zA-Z0-9\s\-\'’,\/]+[)）]\s*$')
     for i in range(start_idx + 1, len(lines)):
         if heading_pattern.match(lines[i].strip()):
             end_idx = i
