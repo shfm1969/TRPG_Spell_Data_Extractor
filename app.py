@@ -266,7 +266,13 @@ def to_zh_tw(text: str) -> str:
 
 def parse_spell_data(text, spell_name, verbose=False):
     """Parses text to extract spell properties based on business rules."""
-    parsed_data = {}
+    parsed_data = {
+        "[語言V]": "",
+        "[姿勢S]": "",
+        "[材料M]": "",
+        "[器材F]": "",
+        "[法器DF]": ""
+    }
 
     # Extract English name to find target block (bypassing Traditional/Simplified issues)
     english_name_match = re.search(r'[(（]([a-zA-Z\s\-\']+)[)）]', str(spell_name))
