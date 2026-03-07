@@ -344,10 +344,14 @@ def parse_spell_data(text, spell_name, verbose=False):
         # Parse Range: [施法距離]
         if line.startswith("距离") or line.startswith("距離") or line.startswith("施法距离") or line.startswith("施法距離"):
             content = line.split(":", 1)[-1].split("：", 1)[-1].strip()
+            # Rule 1: Starts with specific keywords -> return exact 2 characters
             if content.startswith("近距"): parsed_data["[施法距離]"] = "近距"
             elif content.startswith("中距"): parsed_data["[施法距離]"] = "中距"
             elif content.startswith("遠距") or content.startswith("远距"): parsed_data["[施法距離]"] = "遠距"
-            elif content.startswith("接触") or content.startswith("接觸"): parsed_data["[施法距離]"] = "接觸"
+            elif content.startswith("接觸") or content.startswith("接触"): parsed_data["[施法距離]"] = "接觸"
+            # Rule 2: Length <= 5 characters (excluding the above) -> return original
+            elif len(content) <= 5: parsed_data["[施法距離]"] = content
+            # Rule 3: Catch-all -> return "其他"
             else: parsed_data["[施法距離]"] = "其他"
             
         # Parse Duration: [持續時間] (先替換「每等級」→「每CL」，再判斷長度 <= 16)
