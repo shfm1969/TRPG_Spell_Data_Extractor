@@ -342,12 +342,12 @@ def parse_spell_data(text, spell_name, verbose=False):
             else: parsed_data["[施法時間]"] = content
             
         # Parse Range: [施法距離]
-        if line.startswith("距离") or line.startswith("距離") or line.startswith("施法距离") or line.startswith("施法距離"):
+        if line.startswith("距离") or line.startswith("距離") or line.startswith("射程") or line.startswith("施法距离") or line.startswith("施法距離"):
             content = line.split(":", 1)[-1].split("：", 1)[-1].strip()
             # Rule 1: Starts with specific keywords -> return exact 2 characters
-            if content.startswith("近距"): parsed_data["[施法距離]"] = "近距"
-            elif content.startswith("中距"): parsed_data["[施法距離]"] = "中距"
-            elif content.startswith("遠距") or content.startswith("远距"): parsed_data["[施法距離]"] = "遠距"
+            if content.startswith("近距") or content.startswith("近程"): parsed_data["[施法距離]"] = "近距"
+            elif content.startswith("中距") or content.startswith("中等"): parsed_data["[施法距離]"] = "中距"
+            elif content.startswith("遠距") or content.startswith("远距") or content.startswith("长距"): parsed_data["[施法距離]"] = "遠距"
             elif content.startswith("接觸") or content.startswith("接触"): parsed_data["[施法距離]"] = "接觸"
             # Rule 2: Length <= 8 characters (excluding the above) -> return original
             elif len(content) <= 8: parsed_data["[施法距離]"] = content
