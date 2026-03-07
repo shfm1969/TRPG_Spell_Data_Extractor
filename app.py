@@ -172,7 +172,8 @@ def fetch_sheet_data(sheets_service, sheet_id, start_row, batch_size):
 
 TARGET_COLUMNS = [
     "[語言V]", "[姿勢S]", "[材料M]", "[器材F]", "[法器DF]", 
-    "[施法時間]", "[施法距離]", "[持續時間]", "[豁免]", "[豁免說明]", "[法抗]"
+    "[施法時間]", # "[施法距離]", 
+    "[持續時間]", "[豁免]", "[豁免說明]", "[法抗]"
 ]
 
 def get_col_idx(col_map, name):
@@ -273,7 +274,7 @@ def parse_spell_data(text, spell_name, verbose=False):
         "[器材F]": "",
         "[法器DF]": "",
         "[施法時間]": "",
-        "[施法距離]": "",
+        # "[施法距離]": "",
         "[持續時間]": "",
         "[豁免]": "",
         "[豁免說明]": "",
@@ -341,18 +342,18 @@ def parse_spell_data(text, spell_name, verbose=False):
             elif "一个直觉动作" in content: parsed_data["[施法時間]"] = "即時"
             else: parsed_data["[施法時間]"] = content
             
-        # Parse Range: [施法距離]
-        if line.startswith("距离") or line.startswith("距離") or line.startswith("射程") or line.startswith("施法距离") or line.startswith("施法距離"):
-            content = line.split(":", 1)[-1].split("：", 1)[-1].strip()
-            # Rule 1: Starts with specific keywords -> return exact 2 characters
-            if content.startswith("近距") or content.startswith("近程"): parsed_data["[施法距離]"] = "近距"
-            elif content.startswith("中距") or content.startswith("中等"): parsed_data["[施法距離]"] = "中距"
-            elif content.startswith("遠距") or content.startswith("远距") or content.startswith("长距"): parsed_data["[施法距離]"] = "遠距"
-            elif content.startswith("接觸") or content.startswith("接触"): parsed_data["[施法距離]"] = "接觸"
-            # Rule 2: Length <= 8 characters (excluding the above) -> return original
-            elif len(content) <= 8: parsed_data["[施法距離]"] = content
-            # Rule 3: Catch-all -> return "其他"
-            else: parsed_data["[施法距離]"] = "其他"
+        # # Parse Range: [施法距離]
+        # if line.startswith("距离") or line.startswith("距離") or line.startswith("射程") or line.startswith("施法距离") or line.startswith("施法距離"):
+        #     content = line.split(":", 1)[-1].split("：", 1)[-1].strip()
+        #     # Rule 1: Starts with specific keywords -> return exact 2 characters
+        #     if content.startswith("近距") or content.startswith("近程"): parsed_data["[施法距離]"] = "近距"
+        #     elif content.startswith("中距") or content.startswith("中等"): parsed_data["[施法距離]"] = "中距"
+        #     elif content.startswith("遠距") or content.startswith("远距") or content.startswith("长距"): parsed_data["[施法距離]"] = "遠距"
+        #     elif content.startswith("接觸") or content.startswith("接触"): parsed_data["[施法距離]"] = "接觸"
+        #     # Rule 2: Length <= 10 characters (excluding the above) -> return original
+        #     elif len(content) <= 10: parsed_data["[施法距離]"] = content
+        #     # Rule 3: Catch-all -> return "其他"
+        #     else: parsed_data["[施法距離]"] = "其他"
             
         # Parse Duration: [持續時間] (先替換「每等級」→「每CL」，再判斷長度 <= 16)
         if line.startswith("持续时间") or line.startswith("持續時間"):

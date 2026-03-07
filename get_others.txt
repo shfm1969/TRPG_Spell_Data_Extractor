@@ -8,4 +8,3 @@ uv run app.py --start-row 720
 uv run app.py --start-row 784
 uv run app.py --start-row 858
 uv run app.py --start-row 911
-uv run app.py --start-row 936
