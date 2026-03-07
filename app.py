@@ -349,8 +349,8 @@ def parse_spell_data(text, spell_name, verbose=False):
             elif content.startswith("中距"): parsed_data["[施法距離]"] = "中距"
             elif content.startswith("遠距") or content.startswith("远距"): parsed_data["[施法距離]"] = "遠距"
             elif content.startswith("接觸") or content.startswith("接触"): parsed_data["[施法距離]"] = "接觸"
-            # Rule 2: Length <= 5 characters (excluding the above) -> return original
-            elif len(content) <= 5: parsed_data["[施法距離]"] = content
+            # Rule 2: Length <= 8 characters (excluding the above) -> return original
+            elif len(content) <= 8: parsed_data["[施法距離]"] = content
             # Rule 3: Catch-all -> return "其他"
             else: parsed_data["[施法距離]"] = "其他"
             
